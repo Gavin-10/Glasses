@@ -2,9 +2,9 @@
 ### *You need Glasses to C*
 ---
 ## Dependencies
--Linux OS
--Rust
--GCC added to path
+- Linux OS
+- Rust
+- GCC added to path
 
 ## Usage
 `Glasses <filename> (--lex | --parse | --codegen)?`
