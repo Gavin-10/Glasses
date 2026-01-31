@@ -1,12 +1,12 @@
-#Welcome to Glasses#
-###*You need Glasses to C*###
+# Welcome to Glasses
+### *You need Glasses to C*
 ---
-##Dependencies##
+## Dependencies
 -Linux OS
 -Rust
 -GCC added to path
 
-##Usage##
+## Usage
 `Glasses <filename> (--lex | --parse | --codegen)?`
 
 This is my hand written C compiler, written in Rust. It's job
