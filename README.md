@@ -7,7 +7,7 @@
 - GCC added to path
 
 ## Usage
-`Glasses <filename> (--lex | --parse | --codegen)?`
+`Glasses <filename> (--lex | --parse | --tacky | --codegen)?`
 
 This is my hand written C compiler, written in Rust. It's job
 is to take a written C program, optimize it, and translate it,
