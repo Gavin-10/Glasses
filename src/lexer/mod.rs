@@ -1,3 +1,3 @@
 
-pub mod lexer_structures;
-pub mod lexer_operations;
+pub mod lexer_structs;
+pub mod lexer_ops;

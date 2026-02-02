@@ -1,9 +1,9 @@
 
 use crate::utilities::error_handler::fmt_lexer_error;
-use crate::lexer::lexer_structures::*;
+use crate::lexer::lexer_structs::*;
 
-pub fn lex(characters: Vec<u8>) -> Result<Vec<(Token, u32)>, String> {
-    let mut lexer = Lexer::new(characters);
+pub fn lex(characters: Vec<u8>) -> Result<Vec<(Tkn, u32)>, String> {
+    let mut lexer = Lxr::new(characters);
 
     while !lexer.is_at_end() {
         skip_white_space(&mut lexer);
@@ -14,7 +14,7 @@ pub fn lex(characters: Vec<u8>) -> Result<Vec<(Token, u32)>, String> {
     Ok(lexer.tokens)
 }
 
-fn skip_white_space(lexer: &mut Lexer) {
+fn skip_white_space(lexer: &mut Lxr) {
     while !lexer.is_at_end() {
         match lexer.peek() {
             '\n' | '\r' => {
@@ -29,14 +29,25 @@ fn skip_white_space(lexer: &mut Lexer) {
     }
 }
 
-fn create_token(lexer: &mut Lexer) -> Result<Token, String> {
+fn create_token(lexer: &mut Lxr) -> Result<Tkn, String> {
     let current = lexer.take();
     match current {
-        '(' => Ok(Token::LeftParen),
-        ')' => Ok(Token::RightParen),
-        '{' => Ok(Token::LeftBrace),
-        '}' => Ok(Token::RightBrace),
-        ';' => Ok(Token::Semicolon),
+        '(' => Ok(Tkn::LeftParen),
+        ')' => Ok(Tkn::RightParen),
+        '{' => Ok(Tkn::LeftBrace),
+        '}' => Ok(Tkn::RightBrace),
+        ';' => Ok(Tkn::Semicolon),
+        '~' => Ok(Tkn::Tilde),
+
+        '-' => {
+            if lexer.peek() == '-' { 
+                lexer.take();
+                Ok(Tkn::Decrement)
+            } else {
+                Ok(Tkn::Subtract)
+            }
+        },
+
         _ => {
             if is_digit(current) {
                 let mut num = String::from(current);
@@ -45,7 +56,7 @@ fn create_token(lexer: &mut Lexer) -> Result<Token, String> {
                 if is_alpha(lexer.peek()) { 
                     Err(fmt_lexer_error(lexer.line, "Invalid Identifier"))
                 } else {
-                    Ok(Token::Const(num.parse().unwrap()))
+                    Ok(Tkn::Constant(num.parse().unwrap()))
                 }
             } else if is_alpha(current) {
                 let mut ident = String::from(current);
@@ -53,9 +64,9 @@ fn create_token(lexer: &mut Lexer) -> Result<Token, String> {
                     ident.push(lexer.take());
                 }
                 if KEYWORDS.contains(&ident.as_str()) {
-                    Ok(Token::Key(ident))
+                    Ok(Tkn::Key(ident))
                 } else {
-                    Ok(Token::Ident(ident))
+                    Ok(Tkn::Identifier(ident))
                 }
             } else {
                 Err(fmt_lexer_error(lexer.line, &format!("Unexpected Token: {}", current)))

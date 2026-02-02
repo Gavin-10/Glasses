@@ -3,28 +3,33 @@ pub static KEYWORDS: [&str; 3] = ["int", "void", "return"];
 
 #[derive(Debug)]
 #[derive(PartialEq)]
-pub enum Token {
+pub enum Tkn {
     //Single Character Tokens
     LeftParen,
     RightParen,
     LeftBrace,
     RightBrace,
     Semicolon,
+    Tilde,
+
+    //Single-Double Tokens
+    Subtract,
+    Decrement,
 
     //Words
     Key(String),
-    Ident(String),
-    Const(i32)
+    Identifier(String),
+    Constant(i32)
 }
 
-pub struct Lexer {
-    pub tokens: Vec<(Token, u32)>,
+pub struct Lxr {
+    pub tokens: Vec<(Tkn, u32)>,
     pub line: u32,
     characters: Vec<u8>,
     current: usize,
 }
 
-impl Lexer {
+impl Lxr {
     pub fn new(characters: Vec<u8>) -> Self {
         Self { characters: characters, current: 0, tokens: Vec::new(), line: 1 }
     }

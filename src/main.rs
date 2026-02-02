@@ -7,19 +7,21 @@ use std::fs;
 mod lexer;
 mod utilities;
 mod parser;
+mod tacky;
 mod code_gen;
 mod code_emission;
 
-use lexer::lexer_operations::lex;
+use lexer::lexer_ops::lex;
 use utilities::file_cleanup::*;
 use utilities::error_handler::*;
 use parser::tree_builder::parse;
 use parser::ast_printer::print_ast;
-use code_gen::assembly_tree_builder::gen_code;
+use tacky::t_tree_builder::gen_tacky;
+use code_gen::a_tree_builder::gen_code;
 use code_emission::write_assembly::output;
 
 fn args_error()  -> ! {
-    println!("Usage: glasses <filename> --lex? | --parse | --codegen?");
+    println!("Usage: glasses <filename> --lex? | --parse? | --codegen?");
 
     process::exit(1);
 }
@@ -32,6 +34,7 @@ fn check_args(args: &Vec<String>) -> Option<&str> {
             "--lex" => Some("--lex"),
             "--parse" => Some("--parse"),
             "--codegen" => Some("--codegen"),
+            "--tacky" => Some("--tacky"),
             _ => args_error(),
         }
     } else {
@@ -74,8 +77,17 @@ fn compile(name: &str, flag: Option<&str>) {
         process::exit(0);
     }
 
-    let assembly_tree = gen_code(program_ast);
+    let tacky_ir = gen_tacky(program_ast);
+    if flag == Some("--tacky") {
+        println!("{:?}", tacky_ir);
+        process::exit(0);
+    }
+
+    let assembly_tree = gen_code(tacky_ir);
     output(assembly_tree, name);
+    if flag == Some("--codegen") {
+        process::exit(0);
+    }
 }
 
 fn assemble(name: &str) {

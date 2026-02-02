@@ -1,11 +1,11 @@
 
-use crate::lexer::lexer_structures::*;
+use crate::lexer::lexer_structs::*;
 use crate::utilities::error_handler::parser_error;
 use crate::parser::ast::*;
 
-pub fn parse(tokens: Vec<(Token, u32)>) -> FunctionDef {
+pub fn parse(tokens: Vec<(Tkn, u32)>) -> FuncDef {
     let mut token_que = TokenQue::new(tokens);
-    let mut program: Option<FunctionDef> = None;
+    let mut program: Option<FuncDef> = None;
 
     while token_que.len() != 0 {
         program = Some(fn_decl(&mut token_que));
@@ -14,32 +14,32 @@ pub fn parse(tokens: Vec<(Token, u32)>) -> FunctionDef {
     program.unwrap()
 }
 
-fn fn_decl(tokens: &mut TokenQue) -> FunctionDef {
-    tokens.consume(Token::Key("int".to_string()), "Expected int");
+fn fn_decl(tokens: &mut TokenQue) -> FuncDef {
+    tokens.consume(Tkn::Key("int".to_string()), "Expected int");
 
     let expected_ident = tokens.next_token();
     let name = match expected_ident.0 {
-        Token::Ident(name) => name,
+        Tkn::Identifier(name) => name,
         _ => parser_error(expected_ident.1, "Expected function identifier"),
     };
 
-    tokens.consume(Token::LeftParen, "Expected '('");
-    tokens.consume(Token::Key("void".to_string()), "Expected 'void'");
-    tokens.consume(Token::RightParen, "Expected ')'");
+    tokens.consume(Tkn::LeftParen, "Expected '('");
+    tokens.consume(Tkn::Key("void".to_string()), "Expected 'void'");
+    tokens.consume(Tkn::RightParen, "Expected ')'");
 
     let body = body_decl(tokens);
 
-    FunctionDef::Function(name, body)
+    FuncDef::Function(name, body)
 }
 
 fn body_decl(tokens: &mut TokenQue) -> Body {
-    tokens.consume(Token::LeftBrace, "Expected '{'");
-    tokens.consume(Token::Key("return".to_string()), "Expected 'return'");
+    tokens.consume(Tkn::LeftBrace, "Expected '{'");
+    tokens.consume(Tkn::Key("return".to_string()), "Expected 'return'");
 
     let expression = expr(tokens);
 
-    tokens.consume(Token::Semicolon, "Expected ';'");
-    tokens.consume(Token::RightBrace, "Expected '}'");
+    tokens.consume(Tkn::Semicolon, "Expected ';'");
+    tokens.consume(Tkn::RightBrace, "Expected '}'");
 
     Body::Return(expression)
 }
@@ -47,10 +47,26 @@ fn body_decl(tokens: &mut TokenQue) -> Body {
 fn expr(tokens: &mut TokenQue) -> Expr {
     
     let current = tokens.next_token();
-    let val = match current.0 {
-        Token::Const(value) => value,
-        _ => parser_error(current.1, "Expected constant return value"),
-    };
+    match current.0 {
+        Tkn::Constant(value) => Expr::Constant(value),
+        Tkn::Tilde | Tkn::Subtract => {
+            let operator = parse_unary_op(&current);
+            Expr::Unary(operator, Box::new(expr(tokens)))
+        },
+        Tkn::LeftParen => {
+            let inner_expr = expr(tokens);
+            tokens.consume(Tkn::RightParen, "Expected ')'");
+            inner_expr
+        },
 
-    Expr::Constant(val)
+        _ => parser_error(current.1, "Expression Expected"),
+    }
+}
+
+fn parse_unary_op(token: &(Tkn, u32)) -> UnaryOp {
+    match token.0 {
+        Tkn::Tilde => UnaryOp::Complement,
+        Tkn::Subtract => UnaryOp::Negate,
+        _ => parser_error(token.1, "Unary Operator Expected"),
+    }
 }
