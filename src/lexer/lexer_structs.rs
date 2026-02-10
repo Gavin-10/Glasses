@@ -15,6 +15,11 @@ pub enum Tkn {
     //Single-Double Tokens
     Subtract,
     Decrement,
+    Star,
+    Slash,
+    Plus,
+    Increment,
+    Mod,
 
     //Words
     Key(String),

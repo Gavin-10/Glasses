@@ -10,9 +10,20 @@ pub enum UnaryOp {
 }
 
 #[derive(Debug)]
+#[derive(PartialEq)]
+pub enum BinaryOp {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Remainder,
+}
+
+#[derive(Debug)]
 pub enum Expr {
     Constant(i32),
     Unary(UnaryOp, Box<Expr>),
+    Binary(BinaryOp, Box<Expr>, Box<Expr>),
 }
 
 #[derive(Debug)]

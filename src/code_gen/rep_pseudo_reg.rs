@@ -31,6 +31,11 @@ fn check_instruction(instr: &mut AInstr, var_addresses: &mut HashMap<String, i32
             check_operand(dst, var_addresses, depth);
         },
         AInstr::Unary(_, op) => check_operand(op, var_addresses, depth),
+        AInstr::Binary(_, op1, op2) => {
+            check_operand(op1, var_addresses, depth);
+            check_operand(op2, var_addresses, depth);
+        },
+        AInstr::Idiv(op) => check_operand(op, var_addresses, depth),
         _ => (),
     };
 }

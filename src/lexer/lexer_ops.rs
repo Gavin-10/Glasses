@@ -38,6 +38,9 @@ fn create_token(lexer: &mut Lxr) -> Result<Tkn, String> {
         '}' => Ok(Tkn::RightBrace),
         ';' => Ok(Tkn::Semicolon),
         '~' => Ok(Tkn::Tilde),
+        '/' => Ok(Tkn::Slash),
+        '*' => Ok(Tkn::Star),
+        '%' => Ok(Tkn::Mod),
 
         '-' => {
             if lexer.peek() == '-' { 
@@ -47,6 +50,15 @@ fn create_token(lexer: &mut Lxr) -> Result<Tkn, String> {
                 Ok(Tkn::Subtract)
             }
         },
+
+        '+' => {
+            if lexer.peek() == '+' {
+                lexer.take();
+                Ok(Tkn::Increment)
+            } else {
+                Ok(Tkn::Plus)
+            }
+        }
 
         _ => {
             if is_digit(current) {

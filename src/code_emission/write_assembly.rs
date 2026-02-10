@@ -57,10 +57,28 @@ fn write_instruction(instruction: &AInstr, file: &mut File) -> Result<(), Error>
             Ok(())
         },
         AInstr::Unary(op, oprnd) => {
-            let operator = get_operator(op);
+            let operator = get_unary_operator(op);
             let operand = get_operand(oprnd);
 
             file.write_all(format!("\t{} {}\n", &operator, &operand).as_bytes())?;
+            Ok(())
+        },
+        AInstr::Binary(op, left, right) => {
+            let operator = get_binary_operator(op);
+            let src = get_operand(left);
+            let dst = get_operand(right);
+            
+            file.write_all(format!("\t{} {}, {}\n", &operator, &src, &dst).as_bytes())?;
+            Ok(())
+        },
+        AInstr::Idiv(op) => {
+            let operand = get_operand(op);
+
+            file.write_all(format!("\tidivl {}\n", operand).as_bytes())?;
+            Ok(())
+        },
+        AInstr::Cdq => {
+            file.write_all("\tcdq\n".as_bytes())?;
             Ok(())
         },
         AInstr::AllocateStack(val) => {
@@ -77,17 +95,27 @@ fn write_instruction(instruction: &AInstr, file: &mut File) -> Result<(), Error>
 fn get_operand(op: &AOprnd) -> String {
     match op {
         AOprnd::Reg(AReg::AX) => "%eax".to_string(),
+        AOprnd::Reg(AReg::DX) => "%edx".to_string(),
         AOprnd::Reg(AReg::R10) => "%r10d".to_string(),
+        AOprnd::Reg(AReg::R11) => "%r11d".to_string(),
         AOprnd::Stack(val) => format!("{}(%rbp)", val).to_string(),
         AOprnd::Imm(val) => format!("${}", val).to_string(),
         _ => "Should Not Exist".to_string(),
     }
 }
 
-fn get_operator(op: &AUnaryOp) -> String {
+fn get_unary_operator(op: &AUnaryOp) -> String {
     match op {
         AUnaryOp::Neg => "negl".to_string(),
         AUnaryOp::Not => "notl".to_string(),
+    }
+}
+
+fn get_binary_operator(op: &ABinaryOp) -> String {
+    match op {
+        ABinaryOp::Add => "addl".to_string(),
+        ABinaryOp::Sub => "subl".to_string(),
+        ABinaryOp::Mult => "imull".to_string(),
     }
 }
 

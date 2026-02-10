@@ -8,6 +8,16 @@ pub enum TUnaryOp {
 
 #[derive(Debug)]
 #[derive(Clone)]
+pub enum TBinaryOp {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Remainder,
+}
+
+#[derive(Debug)]
+#[derive(Clone)]
 pub enum TVal {
     Constant(i32),
     Var(String),
@@ -18,6 +28,7 @@ pub enum TVal {
 pub enum TInstr {
     Return(TVal),
     Unary(TUnaryOp, TVal, TVal),
+    Binary(TBinaryOp, TVal, TVal, TVal),
 }
 
 #[derive(Debug)]

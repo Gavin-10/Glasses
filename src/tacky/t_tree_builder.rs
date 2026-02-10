@@ -38,7 +38,17 @@ fn expr_val(expr: &Expr, instructions: &mut Vec<TInstr>) -> TVal {
             instructions.push(TInstr::Unary(tacky_op, src, dst.clone()));
 
             dst
-        }
+        },
+        Expr::Binary(op, left, right) => {
+            let v1 = expr_val(left, instructions);
+            let v2 = expr_val(right, instructions);
+            let dst_name = make_temp(instructions.len());
+            let dst = TVal::Var(dst_name);
+            let tacky_op = get_binary_op(op);
+            instructions.push(TInstr::Binary(tacky_op, v1, v2, dst.clone()));
+
+            dst
+        },
     }
 }
 
@@ -46,6 +56,16 @@ fn get_unary_op(op: &UnaryOp) -> TUnaryOp {
     match op {
         UnaryOp::Complement => TUnaryOp::Complement,
         UnaryOp::Negate => TUnaryOp::Negate,
+    }
+}
+
+fn get_binary_op(op: &BinaryOp) -> TBinaryOp {
+    match op {
+        BinaryOp::Add => TBinaryOp::Add,
+        BinaryOp::Subtract => TBinaryOp::Subtract,
+        BinaryOp::Multiply => TBinaryOp::Multiply,
+        BinaryOp::Divide => TBinaryOp::Divide,
+        BinaryOp::Remainder => TBinaryOp::Remainder,
     }
 }
 

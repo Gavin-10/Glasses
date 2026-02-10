@@ -1,11 +1,15 @@
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum AReg {
     AX,
     R10,
+    DX,
+    R11,
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum AOprnd {
     Imm(i32),
     Reg(AReg),
@@ -14,15 +18,28 @@ pub enum AOprnd {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum AUnaryOp {
     Neg,
     Not,
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
+pub enum ABinaryOp {
+    Add,
+    Sub,
+    Mult,
+}
+
+#[derive(Debug)]
+#[derive(Clone)]
 pub enum AInstr {
     Mov(AOprnd, AOprnd),
     Unary(AUnaryOp, AOprnd),
+    Binary(ABinaryOp, AOprnd, AOprnd),
+    Idiv(AOprnd),
+    Cdq,
     AllocateStack(i32),
     Ret
 }

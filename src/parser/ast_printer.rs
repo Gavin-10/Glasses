@@ -38,7 +38,16 @@ fn print_expr(expr: Expr, indent: u32) {
             print!("{}Unary ", level(indent));
             print_unary(op);
             print_expr(*expr, indent + 1);
-        }
+        },
+        Expr::Binary(op, left, right) => {
+            print!("{}Binary ", level(indent));
+            print_binary(op);
+            println!("{}Left(", level(indent + 1));
+            print_expr(*left, indent + 2);
+            println!("{})Right(", level(indent + 1));
+            print_expr(*right, indent + 2);
+            println!("{})", level(indent + 1));
+        },
     }
 }
 
@@ -46,6 +55,16 @@ fn print_unary(op: UnaryOp) {
     match op {
         UnaryOp::Negate => println!("-:"),
         UnaryOp::Complement => println!("~:"),
+    };
+}
+
+fn print_binary(op: BinaryOp) {
+    match op {
+        BinaryOp::Add => println!("+:"),
+        BinaryOp::Subtract => println!("-:"),
+        BinaryOp::Multiply => println!("*:"),
+        BinaryOp::Divide => println!("/:"),
+        BinaryOp::Remainder => println!("%:"),
     };
 }
 

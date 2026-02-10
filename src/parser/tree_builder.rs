@@ -36,7 +36,7 @@ fn body_decl(tokens: &mut TokenQue) -> Body {
     tokens.consume(Tkn::LeftBrace, "Expected '{'");
     tokens.consume(Tkn::Key("return".to_string()), "Expected 'return'");
 
-    let expression = expr(tokens);
+    let expression = expr(tokens, 0);
 
     tokens.consume(Tkn::Semicolon, "Expected ';'");
     tokens.consume(Tkn::RightBrace, "Expected '}'");
@@ -44,17 +44,17 @@ fn body_decl(tokens: &mut TokenQue) -> Body {
     Body::Return(expression)
 }
 
-fn expr(tokens: &mut TokenQue) -> Expr {
+fn factor(tokens: &mut TokenQue) -> Expr {
     
     let current = tokens.next_token();
     match current.0 {
         Tkn::Constant(value) => Expr::Constant(value),
         Tkn::Tilde | Tkn::Subtract => {
             let operator = parse_unary_op(&current);
-            Expr::Unary(operator, Box::new(expr(tokens)))
+            Expr::Unary(operator, Box::new(factor(tokens)))
         },
         Tkn::LeftParen => {
-            let inner_expr = expr(tokens);
+            let inner_expr = expr(tokens, 0);
             tokens.consume(Tkn::RightParen, "Expected ')'");
             inner_expr
         },
@@ -63,10 +63,45 @@ fn expr(tokens: &mut TokenQue) -> Expr {
     }
 }
 
+fn expr(tokens: &mut TokenQue, min_prec: u32) -> Expr {
+    let mut left = factor(tokens);
+    let mut next_op = parse_binary_op(&tokens.peek_next_token());
+
+    while next_op != None && precedence(&next_op.unwrap()) >= min_prec {
+        let op = parse_binary_op(&tokens.next_token()).unwrap();
+        let right = expr(tokens, precedence(&op) + 1);
+        left = Expr::Binary(op, Box::from(left), Box::from(right));
+        next_op = parse_binary_op(&tokens.peek_next_token());
+    }
+
+    left
+}
+
 fn parse_unary_op(token: &(Tkn, u32)) -> UnaryOp {
     match token.0 {
         Tkn::Tilde => UnaryOp::Complement,
         Tkn::Subtract => UnaryOp::Negate,
         _ => parser_error(token.1, "Unary Operator Expected"),
+    }
+}
+
+fn parse_binary_op(token: &(Tkn, u32)) -> Option<BinaryOp> {
+    match token.0 {
+        Tkn::Subtract => Some(BinaryOp::Subtract),
+        Tkn::Plus => Some(BinaryOp::Add),
+        Tkn::Star => Some(BinaryOp::Multiply),
+        Tkn::Slash => Some(BinaryOp::Divide),
+        Tkn::Mod => Some(BinaryOp::Remainder),
+        _ => None,
+    }
+}
+
+fn precedence(op: &BinaryOp) -> u32 {
+    match op {
+        BinaryOp::Multiply => 50,
+        BinaryOp::Divide => 50,
+        BinaryOp::Remainder => 50,
+        BinaryOp::Add => 45,
+        BinaryOp::Subtract => 45,
     }
 }

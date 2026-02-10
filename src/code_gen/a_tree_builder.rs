@@ -37,6 +37,22 @@ fn instruction(instr: &TInstr, ainstrs: &mut Vec<AInstr>) {
         TInstr::Unary(op, src, dst) => {
             ainstrs.push(AInstr::Mov(operand(&src), operand(&dst)));
             ainstrs.push(AInstr::Unary(unary_op(&op), operand(&dst)));
+        },
+        TInstr::Binary(TBinaryOp::Divide, src1, src2, dst) => {
+            ainstrs.push(AInstr::Mov(operand(&src1), AOprnd::Reg(AReg::AX)));
+            ainstrs.push(AInstr::Cdq);
+            ainstrs.push(AInstr::Idiv(operand(&src2)));
+            ainstrs.push(AInstr::Mov(AOprnd::Reg(AReg::AX), operand(&dst)));
+        },
+        TInstr::Binary(TBinaryOp::Remainder, src1, src2, dst) => {
+            ainstrs.push(AInstr::Mov(operand(&src1), AOprnd::Reg(AReg::AX)));
+            ainstrs.push(AInstr::Cdq);
+            ainstrs.push(AInstr::Idiv(operand(&src2)));
+            ainstrs.push(AInstr::Mov(AOprnd::Reg(AReg::DX), operand(&dst)));
+        },
+        TInstr::Binary(op, src1, src2, dst) => {
+            ainstrs.push(AInstr::Mov(operand(&src1), operand(&dst)));
+            ainstrs.push(AInstr::Binary(binary_op(&op), operand(&src2), operand(&dst)));
         }
     };
 }
@@ -52,5 +68,14 @@ fn unary_op(op: &TUnaryOp) -> AUnaryOp {
     match op {
         TUnaryOp::Complement => AUnaryOp::Not,
         TUnaryOp::Negate => AUnaryOp::Neg,
+    }
+}
+
+fn binary_op(op: &TBinaryOp) -> ABinaryOp {
+    match op {
+        TBinaryOp::Add => ABinaryOp::Add,
+        TBinaryOp::Subtract => ABinaryOp::Sub,
+        TBinaryOp::Multiply => ABinaryOp::Mult,
+        _ => panic!("Invalid binary op for assembly binary op"),
     }
 }

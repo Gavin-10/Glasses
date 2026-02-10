@@ -8,37 +8,50 @@ pub fn rep_instrs(ast: &mut AssemFuncDef, stack_size: i32) {
 fn check_func(ast: &mut AssemFuncDef, stack_size: i32) {
     match ast {
         AssemFuncDef::Function(_, instrs) => {
-            check_instructions(instrs);
+            *instrs = check_instructions(&instrs);
             instrs.insert(0, AInstr::AllocateStack(stack_size));
         },
     };
 }
 
-fn check_instructions(instrs: &mut Vec<AInstr>) {
-    let mut to_change: Vec<(usize, i32, i32)> = Vec::new();
+fn check_instructions(instrs: &Vec<AInstr>) -> Vec<AInstr> {
+    let mut new_instrs: Vec<AInstr> = Vec::new();
 
     for (index, instr) in instrs.iter().enumerate() {
-        match check_instruction(instr, index) {
-            Some(val) => to_change.push(val),
-            None => (),
+        match instr {
+            AInstr::Mov(AOprnd::Stack(src), AOprnd::Stack(dst)) => {
+                new_instrs.push(AInstr::Mov(AOprnd::Stack(*src), AOprnd::Reg(AReg::R10)));
+                new_instrs.push(AInstr::Mov(AOprnd::Reg(AReg::R10), AOprnd::Stack(*dst)));
+            },
+            AInstr::Idiv(AOprnd::Imm(val)) => {
+                new_instrs.push(AInstr::Mov(AOprnd::Imm(*val), AOprnd::Reg(AReg::R10)));
+                new_instrs.push(AInstr::Idiv(AOprnd::Reg(AReg::R10)));
+            },
+            AInstr::Binary(ABinaryOp::Add, AOprnd::Stack(src), AOprnd::Stack(dst)) => {
+                new_instrs.push(AInstr::Mov(AOprnd::Stack(*src), AOprnd::Reg(AReg::R10)));
+                new_instrs.push(AInstr::Binary(ABinaryOp::Add, AOprnd::Reg(AReg::R10), AOprnd::Stack(*dst)));
+            },
+            AInstr::Binary(ABinaryOp::Sub, AOprnd::Stack(src), AOprnd::Stack(dst)) => {
+                new_instrs.push(AInstr::Mov(AOprnd::Stack(*src), AOprnd::Reg(AReg::R10)));
+                new_instrs.push(AInstr::Binary(ABinaryOp::Sub, AOprnd::Reg(AReg::R10), AOprnd::Stack(*dst)));
+            },
+            AInstr::Binary(ABinaryOp::Mult, _, AOprnd::Stack(dst)) => {
+                if let AInstr::Binary(_, AOprnd::Stack(src), _) = instrs[index] {
+                    new_instrs.push(AInstr::Mov(AOprnd::Stack(*dst), AOprnd::Reg(AReg::R11)));
+                    new_instrs.push(AInstr::Binary(ABinaryOp::Mult, AOprnd::Stack(src), AOprnd::Reg(AReg::R11)));
+                    new_instrs.push(AInstr::Mov(AOprnd::Reg(AReg::R11), AOprnd::Stack(*dst)));
+                }
+
+                if let AInstr::Binary(_, AOprnd::Imm(val), _) = instrs[index] {
+                    new_instrs.push(AInstr::Mov(AOprnd::Stack(*dst), AOprnd::Reg(AReg::R11)));
+                    new_instrs.push(AInstr::Binary(ABinaryOp::Mult, AOprnd::Imm(val), AOprnd::Reg(AReg::R11)));
+                    new_instrs.push(AInstr::Mov(AOprnd::Reg(AReg::R11), AOprnd::Stack(*dst)));
+                }
+            },
+            
+            _ => new_instrs.push(instr.clone()),
         };
     }
 
-    for change in to_change.iter() {
-        change_instr(*change, instrs);
-    }
-}
-
-fn check_instruction(instr: &AInstr, index: usize) -> Option<(usize, i32, i32)> {
-    match instr {
-        AInstr::Mov(AOprnd::Stack(src), AOprnd::Stack(dst)) => {
-            Some((index, *src, *dst))
-        },
-        _ => None,
-    }
-}
-
-fn change_instr(change: (usize, i32, i32), instrs: &mut Vec<AInstr>) {
-    instrs[change.0] = AInstr::Mov(AOprnd::Stack(change.1), AOprnd::Reg(AReg::R10));
-    instrs.insert(change.0 + 1, AInstr::Mov(AOprnd::Reg(AReg::R10), AOprnd::Stack(change.2)));
+    new_instrs
 }
