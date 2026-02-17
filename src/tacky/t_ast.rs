@@ -4,6 +4,7 @@
 pub enum TUnaryOp {
     Complement,
     Negate,
+    Not,
 }
 
 #[derive(Debug)]
@@ -14,6 +15,12 @@ pub enum TBinaryOp {
     Multiply,
     Divide,
     Remainder,
+    Equal,
+    NotEqual,
+    LessThan,
+    LessEqual,
+    GreatThan,
+    GreatEqual,
 }
 
 #[derive(Debug)]
@@ -29,6 +36,11 @@ pub enum TInstr {
     Return(TVal),
     Unary(TUnaryOp, TVal, TVal),
     Binary(TBinaryOp, TVal, TVal, TVal),
+    Copy(TVal, TVal),
+    Jump(String),
+    JumpIfZero(TVal, String),
+    JumpIfNotZero(TVal, String),
+    Label(String),
 }
 
 #[derive(Debug)]

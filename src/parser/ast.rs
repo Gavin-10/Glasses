@@ -7,6 +7,7 @@ use crate::utilities::error_handler::*;
 pub enum UnaryOp {
     Complement,
     Negate,
+    Not,
 }
 
 #[derive(Debug)]
@@ -17,6 +18,14 @@ pub enum BinaryOp {
     Multiply,
     Divide,
     Remainder,
+    And,
+    Or,
+    Equal,
+    NotEqual,
+    LessThan,
+    LessEqual,
+    GreatThan,
+    GreatEqual,
 }
 
 #[derive(Debug)]

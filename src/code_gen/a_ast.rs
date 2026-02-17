@@ -19,6 +19,17 @@ pub enum AOprnd {
 
 #[derive(Debug)]
 #[derive(Clone)]
+pub enum CondCode {
+    E,
+    NE,
+    G,
+    GE,
+    L,
+    LE,
+}
+
+#[derive(Debug)]
+#[derive(Clone)]
 pub enum AUnaryOp {
     Neg,
     Not,
@@ -38,8 +49,13 @@ pub enum AInstr {
     Mov(AOprnd, AOprnd),
     Unary(AUnaryOp, AOprnd),
     Binary(ABinaryOp, AOprnd, AOprnd),
+    Cmp(AOprnd, AOprnd),
     Idiv(AOprnd),
     Cdq,
+    Jmp(String),
+    JmpCC(CondCode, String),
+    SetCC(CondCode, AOprnd),
+    Label(String),
     AllocateStack(i32),
     Ret
 }

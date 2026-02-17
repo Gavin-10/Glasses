@@ -55,6 +55,7 @@ fn print_unary(op: UnaryOp) {
     match op {
         UnaryOp::Negate => println!("-:"),
         UnaryOp::Complement => println!("~:"),
+        UnaryOp::Not => println!("!:"),
     };
 }
 
@@ -65,6 +66,14 @@ fn print_binary(op: BinaryOp) {
         BinaryOp::Multiply => println!("*:"),
         BinaryOp::Divide => println!("/:"),
         BinaryOp::Remainder => println!("%:"),
+        BinaryOp::Equal => println!("==:"),
+        BinaryOp::NotEqual => println!("!=:"),
+        BinaryOp::LessThan => println!("<:"),
+        BinaryOp::LessEqual => println!("<= :"),
+        BinaryOp::GreatThan => println!(">:"),
+        BinaryOp::GreatEqual => println!(">= :"),
+        BinaryOp::And => println!("&&:"),
+        BinaryOp::Or => println!("||:"),
     };
 }
 

@@ -49,7 +49,7 @@ fn factor(tokens: &mut TokenQue) -> Expr {
     let current = tokens.next_token();
     match current.0 {
         Tkn::Constant(value) => Expr::Constant(value),
-        Tkn::Tilde | Tkn::Subtract => {
+        Tkn::Tilde | Tkn::Subtract | Tkn::Not => {
             let operator = parse_unary_op(&current);
             Expr::Unary(operator, Box::new(factor(tokens)))
         },
@@ -81,6 +81,7 @@ fn parse_unary_op(token: &(Tkn, u32)) -> UnaryOp {
     match token.0 {
         Tkn::Tilde => UnaryOp::Complement,
         Tkn::Subtract => UnaryOp::Negate,
+        Tkn::Not => UnaryOp::Not,
         _ => parser_error(token.1, "Unary Operator Expected"),
     }
 }
@@ -92,6 +93,14 @@ fn parse_binary_op(token: &(Tkn, u32)) -> Option<BinaryOp> {
         Tkn::Star => Some(BinaryOp::Multiply),
         Tkn::Slash => Some(BinaryOp::Divide),
         Tkn::Mod => Some(BinaryOp::Remainder),
+        Tkn::EqualEqual => Some(BinaryOp::Equal),
+        Tkn::Less => Some(BinaryOp::LessThan),
+        Tkn::LessEqual => Some(BinaryOp::LessEqual),
+        Tkn::Great => Some(BinaryOp::GreatThan),
+        Tkn::GreatEqual => Some(BinaryOp::GreatEqual),
+        Tkn::NotEqual => Some(BinaryOp::NotEqual),
+        Tkn::And => Some(BinaryOp::And),
+        Tkn::Or => Some(BinaryOp::Or),
         _ => None,
     }
 }
@@ -103,5 +112,13 @@ fn precedence(op: &BinaryOp) -> u32 {
         BinaryOp::Remainder => 50,
         BinaryOp::Add => 45,
         BinaryOp::Subtract => 45,
+        BinaryOp::LessThan => 35,
+        BinaryOp::LessEqual => 35,
+        BinaryOp::GreatThan => 35,
+        BinaryOp::GreatEqual => 35,
+        BinaryOp::Equal => 30,
+        BinaryOp::NotEqual => 30,
+        BinaryOp::And => 10,
+        BinaryOp::Or => 5,
     }
 }

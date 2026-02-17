@@ -48,6 +48,14 @@ fn check_instructions(instrs: &Vec<AInstr>) -> Vec<AInstr> {
                     new_instrs.push(AInstr::Mov(AOprnd::Reg(AReg::R11), AOprnd::Stack(*dst)));
                 }
             },
+            AInstr::Cmp(AOprnd::Stack(src1), AOprnd::Stack(src2)) => {
+                new_instrs.push(AInstr::Mov(AOprnd::Stack(*src1), AOprnd::Reg(AReg::R10)));
+                new_instrs.push(AInstr::Cmp(AOprnd::Reg(AReg::R10), AOprnd::Stack(*src2)));
+            },
+            AInstr::Cmp(src, AOprnd::Imm(val)) => {
+                new_instrs.push(AInstr::Mov(AOprnd::Imm(*val), AOprnd::Reg(AReg::R11)));
+                new_instrs.push(AInstr::Cmp(src.clone(), AOprnd::Reg(AReg::R11)));
+            }
             
             _ => new_instrs.push(instr.clone()),
         };

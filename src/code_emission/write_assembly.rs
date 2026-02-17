@@ -54,14 +54,12 @@ fn write_instruction(instruction: &AInstr, file: &mut File) -> Result<(), Error>
             let dst = get_operand(right);
 
             file.write_all(format!("\tmovl {}, {}\n", &src, &dst).as_bytes())?;
-            Ok(())
         },
         AInstr::Unary(op, oprnd) => {
             let operator = get_unary_operator(op);
             let operand = get_operand(oprnd);
 
             file.write_all(format!("\t{} {}\n", &operator, &operand).as_bytes())?;
-            Ok(())
         },
         AInstr::Binary(op, left, right) => {
             let operator = get_binary_operator(op);
@@ -69,26 +67,72 @@ fn write_instruction(instruction: &AInstr, file: &mut File) -> Result<(), Error>
             let dst = get_operand(right);
             
             file.write_all(format!("\t{} {}, {}\n", &operator, &src, &dst).as_bytes())?;
-            Ok(())
         },
         AInstr::Idiv(op) => {
             let operand = get_operand(op);
 
             file.write_all(format!("\tidivl {}\n", operand).as_bytes())?;
-            Ok(())
         },
         AInstr::Cdq => {
             file.write_all("\tcdq\n".as_bytes())?;
-            Ok(())
         },
         AInstr::AllocateStack(val) => {
             file.write_all(format!("\tsubq ${}, %rsp\n", val).as_bytes())?;
-            Ok(())
         },
         AInstr::Ret => {
             file.write_all(b"\tmovq %rbp, %rsp\n\tpopq %rbp\n\tret\n")?;
-            Ok(())
         },
+        AInstr::Cmp(op1, op2) => {
+            let left = get_operand(&op1);
+            let right = get_operand(&op2);
+            file.write_all(format!("\tcmpl {}, {}\n", left, right).as_bytes())?;
+        },
+        AInstr::Jmp(label) => {
+            let label_out = get_label(&label);
+            file.write_all(format!("\tjmp {}\n", label_out).as_bytes())?;
+        },
+        AInstr::JmpCC(code, label) => {
+            let cond_code = get_cond_code(code);
+            let label_out = get_label(&label);
+            file.write_all(format!("\tj{} {}\n", cond_code, label_out).as_bytes())?;
+        },
+        AInstr::SetCC(code, op) => {
+            let cond_code = get_cond_code(&code);
+            let op_out = get_byte_operand(&op);
+            file.write_all(format!("\tset{} {}\n", cond_code, op_out).as_bytes())?;
+        },
+        AInstr::Label(label) => {
+            let label_out = get_label(&label);
+            file.write_all(format!("{}:\n", label_out).as_bytes())?;
+        }
+    };
+    Ok(())
+}
+
+fn get_label(op: &String) -> String {
+    let mut label = String::from(".L");
+    label += op;
+    label
+}
+
+fn get_cond_code(code: &CondCode) -> String {
+    match code {
+        CondCode::E => "e".to_string(),
+        CondCode::NE => "ne".to_string(),
+        CondCode::L => "l".to_string(),
+        CondCode::LE => "le".to_string(),
+        CondCode::G => "g".to_string(),
+        CondCode::GE => "ge".to_string(),
+    }
+}
+
+fn get_byte_operand(op: &AOprnd) -> String {
+    match op {
+        AOprnd::Reg(AReg::AX) => "%al".to_string(),
+        AOprnd::Reg(AReg::DX) => "%dl".to_string(),
+        AOprnd::Reg(AReg::R10) => "%r10b".to_string(),
+        AOprnd::Reg(AReg::R11) => "%r11b".to_string(),
+        _ => get_operand(op),
     }
 }
 
