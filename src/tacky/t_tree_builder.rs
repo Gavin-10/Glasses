@@ -39,61 +39,63 @@ fn expr_val(expr: &Expr, instructions: &mut Vec<TInstr>) -> TVal {
 
             dst
         },
-        Expr::Binary(BinaryOp::And, left, right) => {
-            let result_name = make_temp("and_result", instructions.len());
-            let result = TVal::Var(result_name);
-
-            let v1 = expr_val(left, instructions);
-
-            let false_name = make_temp("and_false", instructions.len());
-            instructions.push(TInstr::JumpIfZero(v1, false_name.clone()));
-
-            let v2 = expr_val(right, instructions);
-
-            instructions.push(TInstr::JumpIfZero(v2, false_name.clone()));
-            instructions.push(TInstr::Copy(TVal::Constant(1), result.clone()));
-
-            let true_name = make_temp("and_true", instructions.len());
-            instructions.push(TInstr::Jump(true_name.clone()));
-            instructions.push(TInstr::Label(false_name));
-            instructions.push(TInstr::Copy(TVal::Constant(0), result.clone()));
-            instructions.push(TInstr::Label(true_name));
-
-            result
-        },
-        Expr::Binary(BinaryOp::Or, left, right) => {
-            let result_name = make_temp("or_result", instructions.len());
-            let result = TVal::Var(result_name);
-
-            let v1 = expr_val(left, instructions);
-
-            let true_name = make_temp("or_true", instructions.len());
-            instructions.push(TInstr::JumpIfNotZero(v1, true_name.clone()));
-
-            let v2 = expr_val(right, instructions);
-
-            instructions.push(TInstr::JumpIfNotZero(v2, true_name.clone()));
-            instructions.push(TInstr::Copy(TVal::Constant(0), result.clone()));
-
-            let false_name = make_temp("or_false", instructions.len());
-            instructions.push(TInstr::Jump(false_name.clone()));
-            instructions.push(TInstr::Label(true_name));
-            instructions.push(TInstr::Copy(TVal::Constant(1), result.clone()));
-            instructions.push(TInstr::Label(false_name));
-
-            result
-        }
-        Expr::Binary(op, left, right) => {
-            let v1 = expr_val(left, instructions);
-            let v2 = expr_val(right, instructions);
-            let dst_name = make_temp("temp", instructions.len());
-            let dst = TVal::Var(dst_name);
-            let tacky_op = get_binary_op(op);
-            instructions.push(TInstr::Binary(tacky_op, v1, v2, dst.clone()));
-
-            dst
-        },
+        Expr::Binary(op, left, right) => binary(&op, left, right, instructions),
     }
+}
+
+fn binary(op: &BinaryOp, left: &Box<Expr>, right: &Box<Expr>, instructions: &mut Vec<TInstr>) -> TVal {
+    match op {
+        BinaryOp::And | BinaryOp::Or => and_or(op, left, right, instructions),
+        _ => binary_normal(op, left, right, instructions),
+    }
+}
+
+fn and_or(op: &BinaryOp, left: &Box<Expr>, right: &Box<Expr>, instructions: &mut Vec<TInstr>) -> TVal {
+    let result_name = make_temp("and_or_result", instructions.len());
+    let result = TVal::Var(result_name);
+    let short_cond;
+    let final_val;
+
+    match op {
+        BinaryOp::And => {
+            let v1 = expr_val(left, instructions);
+            short_cond = make_temp("short_cond", instructions.len());
+            instructions.push(TInstr::JumpIfZero(v1, short_cond.clone()));
+            let v2 = expr_val(right, instructions);
+            instructions.push(TInstr::JumpIfZero(v2,  short_cond.clone()));
+            instructions.push(TInstr::Copy(TVal::Constant(1), result.clone()));
+            final_val = 0;
+        },
+        BinaryOp::Or => {
+            let v1 = expr_val(left, instructions);
+            short_cond = make_temp("short_cond", instructions.len());
+            instructions.push(TInstr::JumpIfNotZero(v1, short_cond.clone()));
+            let v2 = expr_val(right, instructions);
+            instructions.push(TInstr::JumpIfNotZero(v2, short_cond.clone()));
+            instructions.push(TInstr::Copy(TVal::Constant(0), result.clone()));
+            final_val = 1;
+        },
+        _ => panic!(), //Unreachable
+    }
+
+    let jmp_cond = make_temp("jmp_cond", instructions.len());
+    instructions.push(TInstr::Jump(jmp_cond.clone()));
+    instructions.push(TInstr::Label(short_cond));
+    instructions.push(TInstr::Copy(TVal::Constant(final_val), result.clone()));
+    instructions.push(TInstr::Label(jmp_cond));
+
+    result
+}
+
+fn binary_normal(op: &BinaryOp, left: &Box<Expr>, right: &Box<Expr>, instructions: &mut Vec<TInstr>) -> TVal {
+    let v1 = expr_val(left, instructions);
+    let v2 = expr_val(right, instructions);
+    let dst_name = make_temp("temp", instructions.len());
+    let dst = TVal::Var(dst_name);
+    let tacky_op = get_binary_op(op);
+    instructions.push(TInstr::Binary(tacky_op, v1, v2, dst.clone()));
+
+    dst
 }
 
 fn get_unary_op(op: &UnaryOp) -> TUnaryOp {
