@@ -15,7 +15,7 @@ pub fn parse(tokens: Vec<(Tkn, u32)>) -> FuncDef {
 }
 
 fn fn_decl(tokens: &mut TokenQue) -> FuncDef {
-    tokens.consume(Tkn::Key("int".to_string()), "Expected int");
+    tokens.consume(Tkn::Key(Keyword::Int), "Expected int");
 
     let expected_ident = tokens.next_token();
     let name = match expected_ident.0 {
@@ -24,7 +24,7 @@ fn fn_decl(tokens: &mut TokenQue) -> FuncDef {
     };
 
     tokens.consume(Tkn::LeftParen, "Expected '('");
-    tokens.consume(Tkn::Key("void".to_string()), "Expected 'void'");
+    tokens.consume(Tkn::Key(Keyword::Void), "Expected 'void'");
     tokens.consume(Tkn::RightParen, "Expected ')'");
 
     let body = body_decl(tokens);
@@ -32,16 +32,91 @@ fn fn_decl(tokens: &mut TokenQue) -> FuncDef {
     FuncDef::Function(name, body)
 }
 
-fn body_decl(tokens: &mut TokenQue) -> Body {
+fn body_decl(tokens: &mut TokenQue) -> Vec<BlockItem> {
+    let mut body: Vec<BlockItem> = Vec::new();
+
     tokens.consume(Tkn::LeftBrace, "Expected '{'");
-    tokens.consume(Tkn::Key("return".to_string()), "Expected 'return'");
+    
+    while tokens.peek_next_token().0 != Tkn::RightBrace {
+        body.push(next_block_item(tokens));
+    }
 
-    let expression = expr(tokens, 0);
-
-    tokens.consume(Tkn::Semicolon, "Expected ';'");
     tokens.consume(Tkn::RightBrace, "Expected '}'");
 
-    Body::Return(expression)
+    body
+}
+
+fn next_block_item(tokens: &mut TokenQue) -> BlockItem {
+    let current = tokens.peek_next_token();
+
+    match current.0 {
+        Tkn::Key(Keyword::Int) => {
+            tokens.next();
+            BlockItem::D(declaration(tokens))
+        },
+        _ => BlockItem::S(statement(tokens)),
+    }
+}
+
+fn declaration(tokens: &mut TokenQue) -> Decl {
+    let current = tokens.next_token();
+    let ident;
+    match current.0 {
+        Tkn::Identifier(val) => ident = val,
+        _ => parser_error(current.1, "Identifier Expected"),
+    }
+
+    let next = tokens.peek_next_token();
+    let mut init = None;
+    match next.0 {
+        Tkn::Equal => {
+            tokens.next();
+            init = Some(expr(tokens, 0));
+        },
+        _ => (),
+    }
+
+    tokens.consume(Tkn::Semicolon, "Expected ';'");
+
+    Decl::Declaration(ident, init)
+}
+
+fn statement(tokens: &mut TokenQue) -> Stmt {
+    let current = tokens.peek_next_token();
+
+    let res = match current.0 {
+        Tkn::Semicolon => Stmt::Null,
+        Tkn::Key(Keyword::Return) => {
+            tokens.next();
+            Stmt::Return(expr(tokens, 0))
+        },
+        _ => Stmt::Expression(expr(tokens, 0)),
+    };
+    tokens.consume(Tkn::Semicolon, "Expected ';'");
+    
+    res
+}
+
+fn expr(tokens: &mut TokenQue, min_prec: u32) -> Expr {
+    let mut left = factor(tokens);
+    let mut next_op = parse_binary_op(&tokens.peek_next_token());
+
+    while next_op != None && precedence(&next_op.unwrap()) >= min_prec {
+        let op = parse_binary_op(&tokens.next_token()).unwrap();
+        match op {
+            BinaryOp::Assign => {
+                let right = expr(tokens, precedence(&op));
+                left = Expr::Assignment(Box::from(left), Box::from(right));
+            },
+            _ => {
+                let right = expr(tokens, precedence(&op) + 1);
+                left = Expr::Binary(op, Box::from(left), Box::from(right));
+            }
+        }
+        next_op = parse_binary_op(&tokens.peek_next_token());
+    }
+
+    left
 }
 
 fn factor(tokens: &mut TokenQue) -> Expr {
@@ -58,23 +133,10 @@ fn factor(tokens: &mut TokenQue) -> Expr {
             tokens.consume(Tkn::RightParen, "Expected ')'");
             inner_expr
         },
+        Tkn::Identifier(val) => Expr::Var(val),
 
         _ => parser_error(current.1, "Expression Expected"),
     }
-}
-
-fn expr(tokens: &mut TokenQue, min_prec: u32) -> Expr {
-    let mut left = factor(tokens);
-    let mut next_op = parse_binary_op(&tokens.peek_next_token());
-
-    while next_op != None && precedence(&next_op.unwrap()) >= min_prec {
-        let op = parse_binary_op(&tokens.next_token()).unwrap();
-        let right = expr(tokens, precedence(&op) + 1);
-        left = Expr::Binary(op, Box::from(left), Box::from(right));
-        next_op = parse_binary_op(&tokens.peek_next_token());
-    }
-
-    left
 }
 
 fn parse_unary_op(token: &(Tkn, u32)) -> UnaryOp {
@@ -101,6 +163,7 @@ fn parse_binary_op(token: &(Tkn, u32)) -> Option<BinaryOp> {
         Tkn::NotEqual => Some(BinaryOp::NotEqual),
         Tkn::And => Some(BinaryOp::And),
         Tkn::Or => Some(BinaryOp::Or),
+        Tkn::Equal => Some(BinaryOp::Assign),
         _ => None,
     }
 }
@@ -120,5 +183,6 @@ fn precedence(op: &BinaryOp) -> u32 {
         BinaryOp::NotEqual => 30,
         BinaryOp::And => 10,
         BinaryOp::Or => 5,
+        BinaryOp::Assign => 1,
     }
 }

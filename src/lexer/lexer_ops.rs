@@ -68,7 +68,7 @@ fn create_token(lexer: &mut Lxr) -> Result<Tkn, String> {
                     ident.push(lexer.take()?);
                 }
                 if KEYWORDS.contains(&ident.as_str()) {
-                    Ok(Tkn::Key(ident))
+                    Ok(Tkn::Key(find_key(&ident.as_str())))
                 } else {
                     Ok(Tkn::Identifier(ident))
                 }
@@ -76,6 +76,15 @@ fn create_token(lexer: &mut Lxr) -> Result<Tkn, String> {
                 Err(fmt_lexer_error(lexer.line, &format!("Unexpected Token: {}", current)))
             }
         } 
+    }
+}
+
+fn find_key(val: &str) -> Keyword {
+    match val {
+        "int" => Keyword::Int,
+        "void" => Keyword::Void,
+        "return" => Keyword::Return,
+        _ => panic!(),
     }
 }
 

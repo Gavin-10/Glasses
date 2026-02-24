@@ -14,17 +14,46 @@ fn function_decl(ast: &FuncDef) -> TFuncDef {
     }
 }
 
-fn instrs(body: &Body) -> Vec<TInstr> {
+fn instrs(body: &Vec<BlockItem>) -> Vec<TInstr> {
     let mut instructions: Vec<TInstr> = Vec::new();
 
-    match body {
-        Body::Return(val) => {
-            let ret_val = expr_val(val, &mut instructions);
+    for item in body.iter() {
+        block_item(item, &mut instructions);
+    }
+
+    instructions.push(TInstr::Return(TVal::Constant(0)));
+    
+    instructions
+}
+
+fn block_item(item: &BlockItem, instructions: &mut Vec<TInstr>) {
+    match item {
+        BlockItem::S(stmt) => stmt_val(stmt, instructions),
+        BlockItem::D(decl) => decl_val(decl, instructions),
+    }
+}
+
+fn decl_val(decl: &Decl, instructions: &mut Vec<TInstr>) {
+    match decl {
+        Decl::Declaration(var, Some(expr)) => {
+            let res = expr_val(expr, instructions);
+            instructions.push(TInstr::Copy(res, TVal::Var(var.to_string())));
+        },
+        _ => (),
+    }
+}
+
+fn stmt_val(stmt: &Stmt, instructions: &mut Vec<TInstr>) {
+    match stmt {
+        Stmt::Return(val) => {
+            let ret_val = expr_val(val, instructions);
             instructions.push(TInstr::Return(ret_val));
         },
-    };
-
-    instructions
+        Stmt::Expression(expr) => {
+            let _ = expr_val(expr, instructions);
+        },
+        _ => (),
+    }
 }
 
 fn expr_val(expr: &Expr, instructions: &mut Vec<TInstr>) -> TVal {
@@ -40,6 +69,17 @@ fn expr_val(expr: &Expr, instructions: &mut Vec<TInstr>) -> TVal {
             dst
         },
         Expr::Binary(op, left, right) => binary(&op, left, right, instructions),
+        Expr::Var(v) => TVal::Var(v.clone()),
+        Expr::Assignment(var, right) => {
+            let mut v = String::new();
+            if let Expr::Var(name) = &**var {
+                v = name.clone();
+            }
+            let res = expr_val(right, instructions);
+            instructions.push(TInstr::Copy(res, TVal::Var(v.clone())));
+
+            TVal::Var(v)
+        },
     }
 }
 

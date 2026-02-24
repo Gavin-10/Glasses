@@ -21,6 +21,12 @@ pub fn parser_error(line: u32, msg: &str) -> ! {
     process::exit(1);
 }
 
+pub fn resolver_error(msg: &str) -> ! {
+    println!("Resolver Error:\n{}", msg);
+
+    process::exit(1);
+}
+
 pub fn fmt_lexer_error(line: u32, msg: &str) -> String {
     format!("Lexer Error:\nLine {}: {}", line, msg)
 }

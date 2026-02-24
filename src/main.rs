@@ -10,18 +10,20 @@ mod parser;
 mod tacky;
 mod code_gen;
 mod code_emission;
+mod resolver;
 
 use lexer::lexer_ops::lex;
 use utilities::file_cleanup::*;
 use utilities::error_handler::*;
 use parser::tree_builder::parse;
 use parser::ast_printer::print_ast;
+use resolver::resolution::resolve;
 use tacky::t_tree_builder::gen_tacky;
 use code_gen::a_tree_builder::gen_code;
 use code_emission::write_assembly::output;
 
 fn args_error()  -> ! {
-    println!("Usage: glasses <filename> --lex? | --parse? | --codegen?");
+    println!("Usage: glasses <filename> --lex? | --parse? | --codegen? | --tacky? | --validate?");
 
     process::exit(1);
 }
@@ -35,6 +37,7 @@ fn check_args(args: &Vec<String>) -> Option<&str> {
             "--parse" => Some("--parse"),
             "--codegen" => Some("--codegen"),
             "--tacky" => Some("--tacky"),
+            "--validate" => Some("--validate"),
             _ => args_error(),
         }
     } else {
@@ -65,14 +68,22 @@ fn compile(name: &str, flag: Option<&str>) {
         Ok(res) => res,
         Err(msg) => error_and_clean(msg.as_str(), &format!("{}.i", name)),
     };
-    clean_file(&format!("{}.i", name));
     if flag == Some("--lex") {
         println!("{:?}", tokens);
+        clean_file(&format!("{}.i", name));
         process::exit(0);
     }
 
-    let program_ast = parse(tokens);
+    let mut program_ast = parse(tokens);
     if flag == Some("--parse") {
+        print_ast(program_ast);
+        process::exit(0);
+    }
+    clean_file(&format!("{}.i", name));
+
+    resolve(&mut program_ast);
+    if flag == Some("--validate") {
+        println!("Program resolution success");
         print_ast(program_ast);
         process::exit(0);
     }

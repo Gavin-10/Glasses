@@ -4,6 +4,7 @@ use crate::lexer::lexer_structs::*;
 use crate::utilities::error_handler::*;
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum UnaryOp {
     Complement,
     Negate,
@@ -12,6 +13,7 @@ pub enum UnaryOp {
 
 #[derive(Debug)]
 #[derive(PartialEq)]
+#[derive(Clone)]
 pub enum BinaryOp {
     Add,
     Subtract,
@@ -26,23 +28,40 @@ pub enum BinaryOp {
     LessEqual,
     GreatThan,
     GreatEqual,
+    Assign,
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum Expr {
     Constant(i32),
     Unary(UnaryOp, Box<Expr>),
     Binary(BinaryOp, Box<Expr>, Box<Expr>),
+    Var(String),
+    Assignment(Box<Expr>, Box<Expr>),
 }
 
 #[derive(Debug)]
-pub enum Body {
+pub enum Stmt {
     Return(Expr),
+    Expression(Expr),
+    Null,
+}
+
+#[derive(Debug)]
+pub enum Decl {
+    Declaration(String, Option<Expr>),
+}
+
+#[derive(Debug)]
+pub enum BlockItem {
+    S(Stmt),
+    D(Decl),
 }
 
 #[derive(Debug)]
 pub enum FuncDef {
-    Function(String, Body),
+    Function(String, Vec<BlockItem>),
 }
 
 pub struct TokenQue {
@@ -61,6 +80,13 @@ impl TokenQue {
             let _ = self.next_token();
         } else {
             parser_error(front.1, msg);
+        }
+    }
+
+    pub fn next(&mut self) {
+        match self.tokens.pop_front() {
+            Some(_) => (),
+            None => parser_error_no_line("Expected token but recieved none"),
         }
     }
 

@@ -5,6 +5,14 @@ pub static KEYWORDS: [&str; 3] = ["int", "void", "return"];
 
 #[derive(Debug)]
 #[derive(PartialEq)]
+pub enum Keyword {
+    Int,
+    Void,
+    Return,
+}
+
+#[derive(Debug)]
+#[derive(PartialEq)]
 pub enum Tkn {
     //Single Character Tokens
     LeftParen,
@@ -36,7 +44,7 @@ pub enum Tkn {
     GreatEqual,
 
     //Words
-    Key(String),
+    Key(Keyword),
     Identifier(String),
     Constant(i32)
 }
