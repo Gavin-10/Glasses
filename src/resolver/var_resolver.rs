@@ -51,6 +51,14 @@ fn resolve_stmt(stmt: &Stmt, var_map: &mut HashMap<String, String>) -> Stmt {
     match stmt {
         Stmt::Return(expr) => Stmt::Return(resolve_expr(expr, var_map)),
         Stmt::Expression(expr) => Stmt::Expression(resolve_expr(expr, var_map)),
+        Stmt::If(cond, true_stmt, else_stmt) => {
+            let else_res_stmt = match else_stmt {
+                Some(stmt) => Some(Box::from(resolve_stmt(stmt, var_map))),
+                None => None,
+            };
+
+            Stmt::If(resolve_expr(cond, var_map), Box::from(resolve_stmt(true_stmt, var_map)), else_res_stmt)
+        },
         Stmt::Null => Stmt::Null,
     }
 }
@@ -59,11 +67,16 @@ fn resolve_expr(expr: &Expr, var_map: &mut HashMap<String, String>) -> Expr {
     match expr {
         Expr::Assignment(left, right) => resolve_assignment(left, right, var_map),
         Expr::Var(v) => resolve_var(v, var_map),
-        Expr::Binary(op, left, right) => Expr::Binary(op.clone(), 
+        Expr::Binary(op, left, right) => Expr::Binary(
+            op.clone(), 
             Box::new(resolve_expr(left, var_map)), 
             Box::new(resolve_expr(right, var_map))),
         Expr::Unary(op, oprnd) => Expr::Unary(op.clone(), Box::new(resolve_expr(oprnd, var_map))),
         Expr::Constant(_) => expr.clone(),
+        Expr::Conditional(left, middle, right) => Expr::Conditional(
+            Box::from(resolve_expr(left, var_map)), 
+            Box::from(resolve_expr(middle, var_map)), 
+            Box::from(resolve_expr(right, var_map))),
     }
 }
 

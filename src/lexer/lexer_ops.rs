@@ -42,6 +42,8 @@ fn create_token(lexer: &mut Lxr) -> Result<Tkn, String> {
         '/' => Ok(Tkn::Slash),
         '*' => Ok(Tkn::Star),
         '%' => Ok(Tkn::Mod),
+        '?' => Ok(Tkn::Question),
+        ':' => Ok(Tkn::Colon),
 
         '-' => match_dbl(Tkn::Decrement, Tkn::Subtract, '-', lexer),
         '+' => match_dbl(Tkn::Increment, Tkn::Plus, '+', lexer),
@@ -84,6 +86,8 @@ fn find_key(val: &str) -> Keyword {
         "int" => Keyword::Int,
         "void" => Keyword::Void,
         "return" => Keyword::Return,
+        "if" => Keyword::If,
+        "else" => Keyword::Else,
         _ => panic!(),
     }
 }

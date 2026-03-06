@@ -52,8 +52,30 @@ fn stmt_val(stmt: &Stmt, instructions: &mut Vec<TInstr>) {
         Stmt::Expression(expr) => {
             let _ = expr_val(expr, instructions);
         },
-        _ => (),
+        Stmt::If(cond, then, None) => if_stmt(cond, then, instructions),
+        Stmt::If(cond, then, Some(else_stmt)) => if_else_stmt(cond, then, else_stmt, instructions),
+        Stmt::Null => (),
     }
+}
+
+fn if_stmt(cond: &Expr, then: &Stmt, instructions: &mut Vec<TInstr>) {
+    let res = expr_val(cond, instructions);
+    let if_end = make_temp("if_to_end", instructions.len());
+    instructions.push(TInstr::JumpIfZero(res, if_end.clone()));
+    stmt_val(then, instructions);
+    instructions.push(TInstr::Label(if_end));
+}
+
+fn if_else_stmt(cond: &Expr, then: &Stmt, else_stmt: &Box<Stmt>, instructions: &mut Vec<TInstr>) {
+    let res = expr_val(cond, instructions);
+    let if_else = make_temp("if_to_else", instructions.len());
+    let if_end = make_temp("if_to_end", instructions.len());
+    instructions.push(TInstr::JumpIfZero(res, if_else.clone()));
+    stmt_val(then, instructions);
+    instructions.push(TInstr::Jump(if_end.clone()));
+    instructions.push(TInstr::Label(if_else));
+    stmt_val(else_stmt, instructions);
+    instructions.push(TInstr::Label(if_end));
 }
 
 fn expr_val(expr: &Expr, instructions: &mut Vec<TInstr>) -> TVal {
@@ -80,6 +102,7 @@ fn expr_val(expr: &Expr, instructions: &mut Vec<TInstr>) -> TVal {
 
             TVal::Var(v)
         },
+        Expr::Conditional(left, middle, right) => conditional(left, middle, right, instructions),
     }
 }
 
@@ -136,6 +159,25 @@ fn binary_normal(op: &BinaryOp, left: &Box<Expr>, right: &Box<Expr>, instruction
     instructions.push(TInstr::Binary(tacky_op, v1, v2, dst.clone()));
 
     dst
+}
+
+fn conditional(left: &Box<Expr>, middle: &Box<Expr>, right: &Box<Expr>, instructions: &mut Vec<TInstr>) -> TVal {
+    let res_name = make_temp("cond_res", instructions.len());
+    let final_res = TVal::Var(res_name);
+
+    let res = expr_val(left, instructions);
+    let e2 = make_temp("e2", instructions.len());
+    let end = make_temp("cond_end", instructions.len());
+    instructions.push(TInstr::JumpIfZero(res, e2.clone()));
+    let v1 = expr_val(middle, instructions);
+    instructions.push(TInstr::Copy(v1, final_res.clone()));
+    instructions.push(TInstr::Jump(end.clone()));
+    instructions.push(TInstr::Label(e2));
+    let v2 = expr_val(right, instructions);
+    instructions.push(TInstr::Copy(v2, final_res.clone()));
+    instructions.push(TInstr::Label(end));
+
+    final_res
 }
 
 fn get_unary_op(op: &UnaryOp) -> TUnaryOp {

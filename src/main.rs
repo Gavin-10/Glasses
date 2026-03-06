@@ -77,6 +77,7 @@ fn compile(name: &str, flag: Option<&str>) {
     let mut program_ast = parse(tokens);
     if flag == Some("--parse") {
         print_ast(program_ast);
+        clean_file(&format!("{}.i", name));
         process::exit(0);
     }
     clean_file(&format!("{}.i", name));

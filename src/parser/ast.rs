@@ -28,6 +28,7 @@ pub enum BinaryOp {
     LessEqual,
     GreatThan,
     GreatEqual,
+    Condition,
     Assign,
 }
 
@@ -39,11 +40,13 @@ pub enum Expr {
     Binary(BinaryOp, Box<Expr>, Box<Expr>),
     Var(String),
     Assignment(Box<Expr>, Box<Expr>),
+    Conditional(Box<Expr>, Box<Expr>, Box<Expr>),
 }
 
 #[derive(Debug)]
 pub enum Stmt {
     Return(Expr),
+    If(Expr, Box<Stmt>, Option<Box<Stmt>>),
     Expression(Expr),
     Null,
 }

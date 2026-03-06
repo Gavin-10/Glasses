@@ -1,7 +1,7 @@
 
 use crate::utilities::error_handler::fmt_lexer_error;
 
-pub static KEYWORDS: [&str; 3] = ["int", "void", "return"];
+pub static KEYWORDS: [&str; 5] = ["int", "void", "return", "if", "else"];
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -9,6 +9,8 @@ pub enum Keyword {
     Int,
     Void,
     Return,
+    If,
+    Else,
 }
 
 #[derive(Debug)]
@@ -21,6 +23,8 @@ pub enum Tkn {
     RightBrace,
     Semicolon,
     Tilde,
+    Question,
+    Colon,
 
     //Single-Double Tokens
     Subtract,

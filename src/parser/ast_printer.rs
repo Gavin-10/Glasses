@@ -54,6 +54,20 @@ fn print_stmt(stmt: &Stmt, indent: u32) {
             print_expr(expr, indent + 1);
             println!("{})", level(indent));
         },
+        Stmt::If(cond, then, otherwise) => {
+            println!("{}If(", level(indent));
+            print_expr(cond, indent + 2);
+            println!("{}Then:", level(indent + 1));
+            print_stmt(then, indent + 2);
+            match otherwise {
+                Some(stmt) => {
+                    println!("{}Else:", level(indent + 1));
+                    print_stmt(stmt, indent + 2);
+                },
+                None => (),
+            }
+            println!("{})", level(indent));
+        }
         Stmt::Expression(expr) => {
             println!("{}Expression Statement(", level(indent));
             print_expr(expr, indent + 1);
@@ -85,6 +99,15 @@ fn print_expr(expr: &Expr, indent: u32) {
         Expr::Var(ident) => {
             println!("{}Var: {}", level(indent), ident);
         },
+        Expr::Conditional(left, middle, right) => {
+            println!("{}Conditional(", level(indent));
+            print_expr(left, indent + 2);
+            println!("{}?", level(indent + 1));
+            print_expr(middle, indent + 2);
+            println!("{}:", level(indent + 1));
+            print_expr(right, indent + 2);
+            println!("{})", level(indent));
+        }
         Expr::Assignment(left, right) => {
             println!("{}Assignment:", level(indent));
             println!("{}Into(", level(indent + 1));
@@ -120,6 +143,7 @@ fn print_binary(op: &BinaryOp) {
         BinaryOp::And => println!("&&:"),
         BinaryOp::Or => println!("||:"),
         BinaryOp::Assign => (),
+        BinaryOp::Condition => (),
     };
 }
 

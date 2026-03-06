@@ -85,16 +85,44 @@ fn statement(tokens: &mut TokenQue) -> Stmt {
     let current = tokens.peek_next_token();
 
     let res = match current.0 {
-        Tkn::Semicolon => Stmt::Null,
+        Tkn::Semicolon => {
+            tokens.next();
+            Stmt::Null
+        },
         Tkn::Key(Keyword::Return) => {
             tokens.next();
-            Stmt::Return(expr(tokens, 0))
+            let ret = Stmt::Return(expr(tokens, 0));
+            tokens.consume(Tkn::Semicolon, "Expected ';'");
+            ret
         },
-        _ => Stmt::Expression(expr(tokens, 0)),
+        Tkn::Key(Keyword::If) => {
+            tokens.next();
+            if_stmt(tokens)
+        },
+        _ => {
+            let expr_stmt = Stmt::Expression(expr(tokens, 0));
+            tokens.consume(Tkn::Semicolon, "Expected ';'");
+            expr_stmt
+        },
     };
-    tokens.consume(Tkn::Semicolon, "Expected ';'");
     
     res
+}
+
+fn if_stmt(tokens: &mut TokenQue) -> Stmt {
+    tokens.consume(Tkn::LeftParen, "Expected '('");
+    let cond_expr = expr(tokens, 0);
+    tokens.consume(Tkn::RightParen, "Expected ')'");
+
+    let then_stmt = Box::from(statement(tokens));
+    let mut else_stmt: Option<Box<Stmt>> = None;
+
+    if tokens.peek_next_token().0 == Tkn::Key(Keyword::Else) {
+        tokens.next();
+        else_stmt = Some(Box::from(statement(tokens)));
+    }
+
+    Stmt::If(cond_expr, then_stmt, else_stmt)
 }
 
 fn expr(tokens: &mut TokenQue, min_prec: u32) -> Expr {
@@ -108,6 +136,12 @@ fn expr(tokens: &mut TokenQue, min_prec: u32) -> Expr {
                 let right = expr(tokens, precedence(&op));
                 left = Expr::Assignment(Box::from(left), Box::from(right));
             },
+            BinaryOp::Condition => {
+                let middle = Box::from(expr(tokens, 0));
+                tokens.consume(Tkn::Colon, "Expected ':'");
+                let right = Box::from(expr(tokens, precedence(&op)));
+                left = Expr::Conditional(Box::from(left), middle, right)
+            }
             _ => {
                 let right = expr(tokens, precedence(&op) + 1);
                 left = Expr::Binary(op, Box::from(left), Box::from(right));
@@ -164,6 +198,7 @@ fn parse_binary_op(token: &(Tkn, u32)) -> Option<BinaryOp> {
         Tkn::And => Some(BinaryOp::And),
         Tkn::Or => Some(BinaryOp::Or),
         Tkn::Equal => Some(BinaryOp::Assign),
+        Tkn::Question => Some(BinaryOp::Condition),
         _ => None,
     }
 }
@@ -183,6 +218,7 @@ fn precedence(op: &BinaryOp) -> u32 {
         BinaryOp::NotEqual => 30,
         BinaryOp::And => 10,
         BinaryOp::Or => 5,
+        BinaryOp::Condition => 3,
         BinaryOp::Assign => 1,
     }
 }
