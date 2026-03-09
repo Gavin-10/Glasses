@@ -5,33 +5,46 @@ use crate::parser::ast::*;
 use crate::utilities::error_handler::resolver_error;
 
 pub fn resolve_vars(ast: &mut FuncDef) {
-    let mut var_map: HashMap<String, String> = HashMap::new();
+    let mut var_map: HashMap<String, (String, u32)> = HashMap::new();
 
     match ast {
         FuncDef::Function(_, items) => {
-            for item in items.iter_mut() {
-                *item = resolve_item(&item, &mut var_map);
-            }
+            *items = resolve_block(items, &mut var_map, 0);
         }
     }
 }
 
-fn resolve_item(item: &BlockItem, var_map: &mut HashMap<String, String>) -> BlockItem {
+fn resolve_block(items: &Block, var_map: &mut HashMap<String, (String, u32)>, scope: u32) -> Block {
+    let mut block_items: Vec<BlockItem> = Vec::new();
+    let mut scoped_var_map = var_map.clone();
+
+    match items {
+        Block::Block(items) => {
+            for item in items.iter() {
+                block_items.push(resolve_item(item, &mut scoped_var_map, scope + 1));
+            }
+        }
+    }
+
+    Block::Block(block_items)
+}
+
+fn resolve_item(item: &BlockItem, var_map: &mut HashMap<String, (String, u32)>, scope: u32) -> BlockItem {
     match item {
-        BlockItem::D(decl) => BlockItem::D(resolve_decl(decl, var_map)),
-        BlockItem::S(stmt) => BlockItem::S(resolve_stmt(stmt, var_map)),
+        BlockItem::D(decl) => BlockItem::D(resolve_decl(decl, var_map, scope)),
+        BlockItem::S(stmt) => BlockItem::S(resolve_stmt(stmt, var_map, scope)),
     }
 }
 
-fn resolve_decl(decl: &Decl, var_map: &mut HashMap<String, String>) -> Decl {
+fn resolve_decl(decl: &Decl, var_map: &mut HashMap<String, (String, u32)>, scope: u32) -> Decl {
     match decl {
         Decl::Declaration(name, init) => {
-            if var_map.contains_key(name) {
+            if var_map.contains_key(name) && var_map.get(name).unwrap().1 == scope {
                 resolver_error(format!("{} is a duplicate variable declaration", name).as_str());
             }
 
             let new_name = unique_name(&name, var_map.len());
-            var_map.insert(name.clone(), new_name.clone());
+            var_map.insert(name.clone(), (new_name.clone(), scope));
 
             let mut resolved_init = None;
 
@@ -47,23 +60,27 @@ fn resolve_decl(decl: &Decl, var_map: &mut HashMap<String, String>) -> Decl {
     }
 }
 
-fn resolve_stmt(stmt: &Stmt, var_map: &mut HashMap<String, String>) -> Stmt {
+fn resolve_stmt(stmt: &Stmt, var_map: &mut HashMap<String, (String, u32)>, scope: u32) -> Stmt {
     match stmt {
         Stmt::Return(expr) => Stmt::Return(resolve_expr(expr, var_map)),
         Stmt::Expression(expr) => Stmt::Expression(resolve_expr(expr, var_map)),
         Stmt::If(cond, true_stmt, else_stmt) => {
             let else_res_stmt = match else_stmt {
-                Some(stmt) => Some(Box::from(resolve_stmt(stmt, var_map))),
+                Some(stmt) => Some(Box::from(resolve_stmt(stmt, var_map, scope))),
                 None => None,
             };
 
-            Stmt::If(resolve_expr(cond, var_map), Box::from(resolve_stmt(true_stmt, var_map)), else_res_stmt)
+            Stmt::If(resolve_expr(cond, var_map), Box::from(resolve_stmt(true_stmt, var_map, scope)), else_res_stmt)
+        },
+        Stmt::Compound(block) => {
+            let new_block = resolve_block(block, var_map, scope);
+            Stmt::Compound(new_block)
         },
         Stmt::Null => Stmt::Null,
     }
 }
 
-fn resolve_expr(expr: &Expr, var_map: &mut HashMap<String, String>) -> Expr {
+fn resolve_expr(expr: &Expr, var_map: &mut HashMap<String, (String, u32)>) -> Expr {
     match expr {
         Expr::Assignment(left, right) => resolve_assignment(left, right, var_map),
         Expr::Var(v) => resolve_var(v, var_map),
@@ -80,7 +97,7 @@ fn resolve_expr(expr: &Expr, var_map: &mut HashMap<String, String>) -> Expr {
     }
 }
 
-fn resolve_assignment(left: &Expr, right: &Expr, var_map: &mut HashMap<String, String>) -> Expr {
+fn resolve_assignment(left: &Expr, right: &Expr, var_map: &mut HashMap<String, (String, u32)>) -> Expr {
     let to_assign = match left {
         Expr::Var(_) => left.clone(),
         _ => resolver_error("Invalid lvalue"),
@@ -89,9 +106,10 @@ fn resolve_assignment(left: &Expr, right: &Expr, var_map: &mut HashMap<String, S
     Expr::Assignment(Box::new(resolve_expr(&to_assign, var_map)), Box::new(resolve_expr(right, var_map)))
 }
 
-fn resolve_var(var: &String, var_map: &mut HashMap<String, String>) -> Expr {
+fn resolve_var(var: &String, var_map: &mut HashMap<String, (String, u32)>) -> Expr {
     if var_map.contains_key(var) {
-        Expr::Var(var_map.get(var).unwrap().to_string())
+        let test = Expr::Var(var_map.get(var).unwrap().0.clone());
+        return test;
     } else {
         resolver_error(format!("{} is an undeclared variable", var).as_str())
     }

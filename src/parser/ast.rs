@@ -44,27 +44,37 @@ pub enum Expr {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum Stmt {
     Return(Expr),
     If(Expr, Box<Stmt>, Option<Box<Stmt>>),
     Expression(Expr),
+    Compound(Block),
     Null,
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum Decl {
     Declaration(String, Option<Expr>),
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum BlockItem {
     S(Stmt),
     D(Decl),
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
+pub enum Block {
+    Block(Vec<BlockItem>),
+}
+
+#[derive(Debug)]
 pub enum FuncDef {
-    Function(String, Vec<BlockItem>),
+    Function(String, Block),
 }
 
 pub struct TokenQue {

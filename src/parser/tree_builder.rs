@@ -27,23 +27,22 @@ fn fn_decl(tokens: &mut TokenQue) -> FuncDef {
     tokens.consume(Tkn::Key(Keyword::Void), "Expected 'void'");
     tokens.consume(Tkn::RightParen, "Expected ')'");
 
-    let body = body_decl(tokens);
+    tokens.consume(Tkn::LeftBrace, "Expected '{'");
+    let body = parse_block(tokens);
 
     FuncDef::Function(name, body)
 }
 
-fn body_decl(tokens: &mut TokenQue) -> Vec<BlockItem> {
-    let mut body: Vec<BlockItem> = Vec::new();
+fn parse_block(tokens: &mut TokenQue) -> Block {
+    let mut block: Vec<BlockItem> = Vec::new();
 
-    tokens.consume(Tkn::LeftBrace, "Expected '{'");
-    
     while tokens.peek_next_token().0 != Tkn::RightBrace {
-        body.push(next_block_item(tokens));
+        block.push(next_block_item(tokens));
     }
 
     tokens.consume(Tkn::RightBrace, "Expected '}'");
 
-    body
+    Block::Block(block)
 }
 
 fn next_block_item(tokens: &mut TokenQue) -> BlockItem {
@@ -99,6 +98,10 @@ fn statement(tokens: &mut TokenQue) -> Stmt {
             tokens.next();
             if_stmt(tokens)
         },
+        Tkn::LeftBrace => {
+            tokens.next();
+            Stmt::Compound(parse_block(tokens))
+        }
         _ => {
             let expr_stmt = Stmt::Expression(expr(tokens, 0));
             tokens.consume(Tkn::Semicolon, "Expected ';'");

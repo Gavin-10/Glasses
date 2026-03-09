@@ -11,16 +11,26 @@ fn print_function(ast: FuncDef, indent: u32) {
     match ast {
         FuncDef::Function(name, body) => {
             println!("{}{} <- Function(", level(indent), name);
-            println!("{}body=", level(indent + 1));
-            print_body(body, indent + 2);
+            print_body(&body, indent + 1);
             println!("{})", level(indent));
         },
     };
 }
 
-fn print_body(body: Vec<BlockItem>, indent: u32) {
-    for item in body.iter() {
-        print_block_item(item, indent);
+fn print_body(body: &Block, indent: u32) {
+    println!("{}Function Body:", level(indent));
+    print_block(body, indent + 1);
+}
+
+fn print_block(items: &Block, indent: u32) {
+    match items {
+        Block::Block(items) => {
+            println!("{}Block(", level(indent));
+            for item in items.iter() {
+                print_block_item(item, indent + 1);
+            }
+            println!("{})", level(indent));
+        }
     }
 }
 
@@ -73,6 +83,7 @@ fn print_stmt(stmt: &Stmt, indent: u32) {
             print_expr(expr, indent + 1);
             println!("{})", level(indent));
         },
+        Stmt::Compound(block) => print_block(block, indent + 1),
         Stmt::Null => println!("{}Null Statement", level(indent)),
     }
 }

@@ -14,16 +14,24 @@ fn function_decl(ast: &FuncDef) -> TFuncDef {
     }
 }
 
-fn instrs(body: &Vec<BlockItem>) -> Vec<TInstr> {
+fn instrs(body: &Block) -> Vec<TInstr> {
     let mut instructions: Vec<TInstr> = Vec::new();
 
-    for item in body.iter() {
-        block_item(item, &mut instructions);
-    }
+    block(body, &mut instructions);
 
     instructions.push(TInstr::Return(TVal::Constant(0)));
     
     instructions
+}
+
+fn block(items: &Block, instructions: &mut Vec<TInstr>) {
+    match items {
+        Block::Block(items) => {
+            for item in items.iter() {
+                block_item(item, instructions);
+            }
+        }
+    }
 }
 
 fn block_item(item: &BlockItem, instructions: &mut Vec<TInstr>) {
@@ -54,6 +62,7 @@ fn stmt_val(stmt: &Stmt, instructions: &mut Vec<TInstr>) {
         },
         Stmt::If(cond, then, None) => if_stmt(cond, then, instructions),
         Stmt::If(cond, then, Some(else_stmt)) => if_else_stmt(cond, then, else_stmt, instructions),
+        Stmt::Compound(items) => block(items, instructions),
         Stmt::Null => (),
     }
 }
